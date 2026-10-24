@@ -2,7 +2,7 @@ import type powerbi from "powerbi-visuals-api";
 import type { DataTable, DataValue, Worksheet } from "@tableau/extensions-api-types";
 import { updateType } from "powerbi-visuals-core/powerbi";
 import {
-  chartAggregations, constructorOptions, defaultTooltipSettings, frontendChart, makeUpdateValues, svgTooltipService, toDataViews,
+  chartAggregations, chartPngBlob, constructorOptions, defaultTooltipSettings, frontendChart, makeUpdateValues, svgTooltipService, toDataViews,
   type Aggregations, type Cell, type FrontendDataView, type FrontendVisual, type RawData, type ValueRole
 } from "powerbi-visuals-core/frontends";
 
@@ -163,12 +163,22 @@ function defaultAggregations(): Aggregations {
   return result.aggregations;
 }
 
-/** Exports (API 1.17+) wait for the extension to report its drawing done; older hosts lack the call */
-function reportRendered(): void {
+/** Exports (API 1.17+) wait for the extension to report its drawing done, with the chart image; older hosts lack the call */
+async function reportRendered(svg: SVGSVGElement | null): Promise<void> {
   const extensions = tableau.extensions;
-  if (extensions.environment.isExporting && typeof extensions.reportExtensionRenderComplete === "function") {
-    void extensions.reportExtensionRenderComplete();
+  if (!extensions.environment.isExporting || typeof extensions.reportExtensionRenderComplete !== "function") {
+    return;
   }
+  let image: ArrayBuffer | undefined;
+  try {
+    if (svg !== null) {
+      image = await (await chartPngBlob(svg)).arrayBuffer();
+    }
+  } catch (error: unknown) {
+    // Reporting without the image lets the host capture the page instead of waiting forever
+    console.warn("Chart image export failed", error);
+  }
+  await extensions.reportExtensionRenderComplete(image);
 }
 
 export type TableauChart = {
@@ -209,7 +219,7 @@ export function runChart(chartType: string, element: HTMLElement): TableauChart 
     });
     // The first resize draws before the data arrives; an export must not capture that
     if (loaded) {
-      reportRendered();
+      void reportRendered(visual.svg.node());
     }
   }
 
