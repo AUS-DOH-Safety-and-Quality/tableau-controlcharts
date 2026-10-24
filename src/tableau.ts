@@ -160,10 +160,20 @@ function defaultAggregations(): Aggregations {
   return result.aggregations;
 }
 
+/** Exports (API 1.17+) wait for the extension to report its drawing done; older hosts lack the call */
+function reportRendered(): void {
+  const extensions = tableau.extensions;
+  if (extensions.environment.isExporting && typeof extensions.reportExtensionRenderComplete === "function") {
+    void extensions.reportExtensionRenderComplete();
+  }
+}
+
 export type TableauChart = {
   readonly visual: FrontendVisual;
   /** Fetches the worksheet's data and redraws */
   updateData(): Promise<void>;
+  /** Stops redrawing on data changes and resizes */
+  dispose(): void;
 };
 
 /** Draws a registered chart in a Viz Extension's page, redrawing on data changes and resizes */
@@ -171,6 +181,7 @@ export function runChart(chartType: string, element: HTMLElement): TableauChart 
   const worksheet = vizWorksheet();
   const aggregations = defaultAggregations();
   let dataViews: FrontendDataView[] = [];
+  let loaded = false;
   const visual: FrontendVisual = new (frontendChart(chartType).Visual)(constructorOptions(element, {
     selectionManager: {
       registerOnSelectCallback: () => {},
@@ -193,20 +204,33 @@ export function runChart(chartType: string, element: HTMLElement): TableauChart 
       type,
       frontend: true
     });
+    // The first resize draws before the data arrives; an export must not capture that
+    if (loaded) {
+      reportRendered();
+    }
   }
 
   async function updateData(): Promise<void> {
     const data = await summaryRawData(worksheet);
     dataViews = data === undefined ? [] : makeUpdateValues(data, {}, aggregations).dataViews;
+    loaded = true;
     draw(updateType.data);
   }
 
-  worksheet.addEventListener(tableau.TableauEventType.SummaryDataChanged, () => {
+  const removeListener = worksheet.addEventListener(tableau.TableauEventType.SummaryDataChanged, () => {
     void updateData();
   });
-  new ResizeObserver(() => {
+  const observer = new ResizeObserver(() => {
     draw(updateType.resize);
-  }).observe(element);
+  });
+  observer.observe(element);
   void updateData();
-  return { visual, updateData };
+  return {
+    visual,
+    updateData,
+    dispose: () => {
+      removeListener();
+      observer.disconnect();
+    }
+  };
 }

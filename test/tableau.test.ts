@@ -1,11 +1,11 @@
 import type powerbi from "powerbi-visuals-api";
 import type { DataValue, Worksheet } from "@tableau/extensions-api-types";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { select } from "d3-selection";
 import { registerChart, type FrontendVisual } from "powerbi-visuals-core/frontends";
 import { updateType, type UpdateOptions } from "powerbi-visuals-core/powerbi";
 import type { SvgSelection, ViewModelValidation } from "powerbi-visuals-core/rendering";
-import { runChart, summaryRawData } from "../src/tableau";
+import { runChart, summaryRawData, type TableauChart } from "../src/tableau";
 
 type Listener = () => void;
 
@@ -42,7 +42,7 @@ class TestVisual implements FrontendVisual {
 registerChart("test", { Visual: TestVisual, settingsModel: {}, limitColumns: [], limits: () => ({}) });
 
 /** A worksheet serving rows in pages of two, counting reads and keeping its listeners */
-function fakeWorksheet(encodings: readonly Encoding[], rows: readonly Row[], pageSize = 2) {
+function fakeWorksheet(encodings: readonly Encoding[], rows: readonly Row[], pageSize = 2, gate: Promise<void> = Promise.resolve()) {
   const listeners: Listener[] = [];
   const reads = { data: 0, released: 0 };
   const names = Object.keys(rows[0] ?? {});
@@ -53,12 +53,16 @@ function fakeWorksheet(encodings: readonly Encoding[], rows: readonly Row[], pag
   const worksheet = {
     addEventListener: (_type: string, listener: Listener) => {
       listeners.push(listener);
-      return () => true;
+      return () => {
+        listeners.splice(listeners.indexOf(listener), 1);
+        return true;
+      };
     },
     getVisualSpecificationAsync: () => Promise.resolve({ activeMarksSpecificationIndex: 0, marksSpecifications: [{ encodings }] }),
-    getSummaryDataReaderAsync: () => {
+    getSummaryDataReaderAsync: async () => {
       reads.data++;
-      return Promise.resolve({
+      await gate;
+      return ({
         pageCount: Math.ceil(rows.length / pageSize),
         getPageAsync: (page: number) => {
           const data: DataValue[][] = [];
@@ -104,10 +108,18 @@ const rows: Row[] = [
   { Month: dateCell("2024-03-01", "Mar 2024"), "SUM(Count)": cell(5), "SUM(Total)": cell("x"), Site: cell("B"), Ward: cell("W2"), "AVG(Age)": cell(null) }
 ];
 
-function runTestChart(fake: ReturnType<typeof fakeWorksheet>) {
+const charts: TableauChart[] = [];
+afterEach(() => {
+  for (let i = 0; i < charts.length; i++) {
+    charts[i].dispose();
+  }
+  charts.length = 0;
+});
+
+function runTestChart(fake: ReturnType<typeof fakeWorksheet>, extensions: object = {}) {
   Object.assign(globalThis, {
     tableau: {
-      extensions: { worksheetContent: { worksheet: fake.worksheet } },
+      extensions: { worksheetContent: { worksheet: fake.worksheet }, environment: {}, ...extensions },
       TableauEventType: { SummaryDataChanged: "summary-data-changed" },
       DataType: { Date: "date", DateTime: "date-time" }
     }
@@ -116,6 +128,7 @@ function runTestChart(fake: ReturnType<typeof fakeWorksheet>) {
   element.style.width = "300px";
   element.style.height = "200px";
   const chart = runChart("test", element);
+  charts.push(chart);
   return { chart, element, visual: must(TestVisual.instances[TestVisual.instances.length - 1]) };
 }
 
@@ -203,8 +216,53 @@ describe("Tableau charts", () => {
     expect(must(visual.updates[visual.updates.length - 1]).dataViews).toEqual([]);
   });
 
+  it("reports each drawing to an exporting host, and only then", async () => {
+    const reported = vi.fn(() => Promise.resolve());
+    const exporting = { environment: { isExporting: true }, reportExtensionRenderComplete: reported };
+    let open = (): void => {};
+    const gate = new Promise<void>(resolve => {
+      open = resolve;
+    });
+    const { chart, visual, element } = runTestChart(fakeWorksheet([encodings[0], encodings[1]], rows, 2, gate), exporting);
+    // The observer's first draw precedes the data and is not reported
+    await vi.waitFor(() => {
+      expect(visual.updates.length).toBeGreaterThan(0);
+    });
+    expect(reported).not.toHaveBeenCalled();
+    open();
+    await chart.updateData();
+    const reports = reported.mock.calls.length;
+    expect(reports).toBeGreaterThan(0);
+    expect(reports).toBeLessThan(visual.updates.length);
+    element.style.width = "400px";
+    await vi.waitFor(() => {
+      expect(reported).toHaveBeenCalledTimes(reports + 1);
+    });
+
+    reported.mockClear();
+    const idle = runTestChart(fakeWorksheet([encodings[0], encodings[1]], rows), { ...exporting, environment: { isExporting: false } });
+    await idle.chart.updateData();
+    expect(reported).not.toHaveBeenCalled();
+
+    // Hosts before API 1.17 export without the call
+    const older = runTestChart(fakeWorksheet([encodings[0], encodings[1]], rows), { environment: { isExporting: true } });
+    await expect(older.chart.updateData()).resolves.toBeUndefined();
+  });
+
+  it("stops listening once disposed", async () => {
+    const fake = fakeWorksheet([encodings[0], encodings[1]], rows);
+    const { chart, visual, element } = runTestChart(fake);
+    await chart.updateData();
+    chart.dispose();
+    expect(fake.listeners).toHaveLength(0);
+    const updates = visual.updates.length;
+    element.style.width = "450px";
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(visual.updates.length).toBe(updates);
+  });
+
   it("fails outside a Viz Extension", () => {
-    Object.assign(globalThis, { tableau: { extensions: {} } });
+    Object.assign(globalThis, { tableau: { extensions: { environment: {} } } });
     expect(() => runChart("test", document.createElement("div"))).toThrow("Not running as a Viz Extension.");
   });
 });
