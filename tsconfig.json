@@ -1,0 +1,11 @@
+{
+  "extends": "powerbi-visuals-core/config/tsconfig.visual.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["@tableau/extensions-api-types"],
+    "paths": {
+      "powerbi-spc/*": ["./node_modules/powerbi-spc/src/*"]
+    }
+  },
+  "include": ["src/**/*"]
+}

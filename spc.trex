@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest manifest-version="0.1" xmlns="http://www.tableau.com/xml/extension_manifest">
+  <worksheet-extension id="au.gov.wa.health.spc" extension-version="0.0.1">
+    <default-locale>en_US</default-locale>
+    <name resource-id="name"/>
+    <description>Statistical Process Control chart</description>
+    <author name="AUS-DOH-Safety-and-Quality" email="andrew.johnson@arjohnsonau.com" organization="AUS-DOH-Safety-and-Quality" website="https://github.com/AUS-DOH-Safety-and-Quality"/>
+    <min-api-version>1.11</min-api-version>
+    <source-location>
+      <url>http://localhost:8765/index.html</url>
+    </source-location>
+    <icon/>
+    <encoding id="key">
+      <display-name>Date</display-name>
+      <role-spec>
+        <role-type>discrete-dimension</role-type>
+      </role-spec>
+      <fields max-count="1"/>
+      <encoding-icon token="text"/>
+    </encoding>
+    <encoding id="numerators">
+      <display-name>Numerator</display-name>
+      <data-spec>
+        <data-type>numeric</data-type>
+      </data-spec>
+      <role-spec>
+        <role-type>continuous-measure</role-type>
+      </role-spec>
+      <fields max-count="1"/>
+      <encoding-icon token="letter-y"/>
+    </encoding>
+  </worksheet-extension>
+  <resources>
+    <resource id="name">
+      <text locale="en_US">SPC</text>
+    </resource>
+  </resources>
+</manifest>

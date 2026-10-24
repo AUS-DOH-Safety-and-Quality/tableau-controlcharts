@@ -1,0 +1,20 @@
+{
+  "name": "tableau-spc",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "vite --port 8765",
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "powerbi-spc": "github:AUS-DOH-Safety-and-Quality/PowerBI-SPC#7d95e5a",
+    "powerbi-visuals-core": "github:AUS-DOH-Safety-and-Quality/PowerBI-Visuals-Core#15bb75b"
+  },
+  "devDependencies": {
+    "@tableau/extensions-api-types": "1.17.0",
+    "powerbi-visuals-api": "5.1.0",
+    "typescript": "6.0.3",
+    "vite": "8.3.5"
+  }
+}
