@@ -4,8 +4,9 @@
     "noEmit": true,
     "types": ["@tableau/extensions-api-types"],
     "paths": {
-      "powerbi-spc/*": ["./node_modules/powerbi-spc/src/*"]
+      "powerbi-spc/*": ["./node_modules/powerbi-spc/src/*"],
+      "powerbi-funnels/*": ["./node_modules/powerbi-funnels/src/*"]
     }
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "spc/**/*.ts", "funnels/**/*.ts", "test/**/*"]
 }
