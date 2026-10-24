@@ -2,9 +2,10 @@
 import "tableau-extensions-api/lib/tableau.extensions.1.17.0.min.js";
 import {
   chartAggregations, constructorOptions, defaultTooltipSettings, makeUpdateValues, svgTooltipService, toDataViews, type Aggregations,
-  type RawData
+  type FrontendDataView, type RawData
 } from "powerbi-visuals-core/frontends";
 import { updateType } from "powerbi-visuals-core/powerbi";
+import type powerbi from "powerbi-visuals-api";
 import { Visual } from "powerbi-spc/visual";
 
 type Worksheet = NonNullable<typeof tableau.extensions.worksheetContent>["worksheet"];
@@ -82,15 +83,21 @@ async function rawData(worksheet: Worksheet): Promise<RawData | undefined> {
   return { categories, category_name: keyField, numerators };
 }
 
-async function render(worksheet: Worksheet): Promise<void> {
-  const data = await rawData(worksheet);
-  const dataViews = data === undefined ? [] : makeUpdateValues(data, {}, aggregations).dataViews;
+let dataViews: FrontendDataView[] = [];
+
+function draw(type: powerbi.VisualUpdateType): void {
   visual.update({
     dataViews: toDataViews(dataViews),
     viewport: { width: element.clientWidth, height: element.clientHeight },
-    type: updateType.data,
+    type,
     frontend: true
   });
+}
+
+async function updateData(worksheet: Worksheet): Promise<void> {
+  const data = await rawData(worksheet);
+  dataViews = data === undefined ? [] : makeUpdateValues(data, {}, aggregations).dataViews;
+  draw(updateType.data);
 }
 
 void tableau.extensions.initializeAsync().then(() => {
@@ -99,10 +106,10 @@ void tableau.extensions.initializeAsync().then(() => {
     throw new Error("Not running as a Viz Extension.");
   }
   worksheet.addEventListener(tableau.TableauEventType.SummaryDataChanged, () => {
-    void render(worksheet);
+    void updateData(worksheet);
   });
   new ResizeObserver(() => {
-    void render(worksheet);
+    draw(updateType.resize);
   }).observe(element);
-  return render(worksheet);
+  return updateData(worksheet);
 });
