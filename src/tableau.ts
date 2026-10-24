@@ -46,6 +46,41 @@ function columnIndexes(page: DataTable): Readonly<Record<string, number>> {
   return indexes;
 }
 
+function isDateColumn(page: DataTable, field: string): boolean {
+  for (let i = 0; i < page.columns.length; i++) {
+    if (page.columns[i].fieldName === field) {
+      return page.columns[i].dataType === tableau.DataType.Date || page.columns[i].dataType === tableau.DataType.DateTime;
+    }
+  }
+  return false;
+}
+
+/** The date's time, from the native Date or the parseable value */
+function time(cell: DataValue): number {
+  const native: unknown = cell.nativeValue;
+  return native instanceof Date ? native.getTime() : Date.parse(String(cell.value));
+}
+
+/** Distinct keys in Tableau's row order, which follows the worksheet's sort, or in time order for dates */
+function keyLevels(keys: readonly (string | null)[], times: readonly number[] | undefined): (string | null)[] {
+  const seen = new Set<string | null>();
+  const order: number[] = [];
+  for (let i = 0; i < keys.length; i++) {
+    if (!seen.has(keys[i])) {
+      seen.add(keys[i]);
+      order.push(i);
+    }
+  }
+  if (times !== undefined) {
+    order.sort((a, b) => times[a] - times[b]);
+  }
+  const levels = new Array<string | null>(order.length);
+  for (let i = 0; i < order.length; i++) {
+    levels[i] = keys[order[i]];
+  }
+  return levels;
+}
+
 function namedColumns(names: readonly string[]): Record<string, Cell[]> {
   const columns: Record<string, Cell[]> = {};
   for (let i = 0; i < names.length; i++) {
@@ -62,6 +97,7 @@ export async function summaryRawData(worksheet: Worksheet): Promise<RawData | un
     return undefined;
   }
   const categories: (string | null)[] = [];
+  let times: number[] | undefined;
   const values: Partial<Record<ValueRole, (number | null)[]>> = {};
   const valueFields: ValueRole[] = [];
   for (let i = 0; i < valueRoles.length; i++) {
@@ -79,9 +115,13 @@ export async function summaryRawData(worksheet: Worksheet): Promise<RawData | un
   for (let p = 0; p < reader.pageCount; p++) {
     const page = await reader.getPageAsync(p);
     const indexes = columnIndexes(page);
+    if (p === 0 && isDateColumn(page, keyField)) {
+      times = [];
+    }
     for (let r = 0; r < page.data.length; r++) {
       const row = page.data[r];
       categories.push(formatted(row[indexes[keyField]]));
+      times?.push(time(row[indexes[keyField]]));
       for (let i = 0; i < valueFields.length; i++) {
         values[valueFields[i]]?.push(numeric(row[indexes[fields[valueFields[i]][0]]]));
       }
@@ -97,6 +137,7 @@ export async function summaryRawData(worksheet: Worksheet): Promise<RawData | un
   return {
     categories,
     category_name: keyField,
+    category_levels: keyLevels(categories, times),
     indicators: indicatorNames.length > 0 ? indicators : null,
     tooltips: tooltipNames.length > 0 ? tooltips : null,
     ...values

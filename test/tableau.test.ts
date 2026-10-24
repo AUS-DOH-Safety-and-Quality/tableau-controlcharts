@@ -46,9 +46,9 @@ function fakeWorksheet(encodings: readonly Encoding[], rows: readonly Row[], pag
   const listeners: Listener[] = [];
   const reads = { data: 0, released: 0 };
   const names = Object.keys(rows[0] ?? {});
-  const columns = new Array<{ fieldName: string; index: number }>(names.length);
+  const columns = new Array<{ fieldName: string; index: number; dataType: string }>(names.length);
   for (let i = 0; i < names.length; i++) {
-    columns[i] = { fieldName: names[i], index: i };
+    columns[i] = { fieldName: names[i], index: i, dataType: names[i] === "Month" ? "date" : "string" };
   }
   const worksheet = {
     addEventListener: (_type: string, listener: Listener) => {
@@ -86,6 +86,10 @@ function cell(value: unknown, formattedValue?: string): DataValue {
   return { value, nativeValue: value, formattedValue };
 }
 
+function dateCell(iso: string, formattedValue: string): DataValue {
+  return { value: iso, nativeValue: new Date(iso), formattedValue };
+}
+
 const encodings: Encoding[] = [
   { id: "key", field: { name: "Month" } },
   { id: "numerators", field: { name: "SUM(Count)" } },
@@ -95,14 +99,18 @@ const encodings: Encoding[] = [
   { id: "tooltips", field: { name: "AVG(Age)" } }
 ];
 const rows: Row[] = [
-  { Month: cell("2024-01-01", "Jan 2024"), "SUM(Count)": cell(3), "SUM(Total)": cell(10), Site: cell("A"), Ward: cell("W1"), "AVG(Age)": cell(40.5, "40.5") },
-  { Month: cell("2024-02-01", "Feb 2024"), "SUM(Count)": cell(null), "SUM(Total)": cell(12), Site: cell("A"), Ward: cell("W1"), "AVG(Age)": cell(41, "41.0") },
-  { Month: cell("2024-03-01", "Mar 2024"), "SUM(Count)": cell(5), "SUM(Total)": cell("x"), Site: cell("B"), Ward: cell("W2"), "AVG(Age)": cell(null) }
+  { Month: dateCell("2024-01-01", "Jan 2024"), "SUM(Count)": cell(3), "SUM(Total)": cell(10), Site: cell("A"), Ward: cell("W1"), "AVG(Age)": cell(40.5, "40.5") },
+  { Month: dateCell("2024-02-01", "Feb 2024"), "SUM(Count)": cell(null), "SUM(Total)": cell(12), Site: cell("A"), Ward: cell("W1"), "AVG(Age)": cell(41, "41.0") },
+  { Month: dateCell("2024-03-01", "Mar 2024"), "SUM(Count)": cell(5), "SUM(Total)": cell("x"), Site: cell("B"), Ward: cell("W2"), "AVG(Age)": cell(null) }
 ];
 
 function runTestChart(fake: ReturnType<typeof fakeWorksheet>) {
   Object.assign(globalThis, {
-    tableau: { extensions: { worksheetContent: { worksheet: fake.worksheet } }, TableauEventType: { SummaryDataChanged: "summary-data-changed" } }
+    tableau: {
+      extensions: { worksheetContent: { worksheet: fake.worksheet } },
+      TableauEventType: { SummaryDataChanged: "summary-data-changed" },
+      DataType: { Date: "date", DateTime: "date-time" }
+    }
   });
   const element = document.body.appendChild(document.createElement("div"));
   element.style.width = "300px";
@@ -111,12 +119,15 @@ function runTestChart(fake: ReturnType<typeof fakeWorksheet>) {
   return { chart, element, visual: must(TestVisual.instances[TestVisual.instances.length - 1]) };
 }
 
+Object.assign(globalThis, { tableau: { DataType: { Date: "date", DateTime: "date-time" } } });
+
 describe("Tableau summary data", () => {
   it("reads every encoding across pages, formatting keys, indicators and tooltips and nulling missing or non-numeric values", async () => {
     const fake = fakeWorksheet(encodings, rows);
     const data = must(await summaryRawData(fake.worksheet));
     expect(data.categories).toEqual(["Jan 2024", "Feb 2024", "Mar 2024"]);
     expect(data.category_name).toBe("Month");
+    expect(data.category_levels).toEqual(["Jan 2024", "Feb 2024", "Mar 2024"]);
     expect(data.numerators).toEqual([3, null, 5]);
     expect(data.denominators).toEqual([10, 12, null]);
     expect(data.indicators).toEqual({ Site: ["A", "A", "B"], Ward: ["W1", "W1", "W2"] });
@@ -129,7 +140,28 @@ describe("Tableau summary data", () => {
     expect(await summaryRawData(fakeWorksheet([encodings[0]], rows).worksheet)).toBeUndefined();
     expect(await summaryRawData(fakeWorksheet([encodings[1]], rows).worksheet)).toBeUndefined();
     const data = must(await summaryRawData(fakeWorksheet([encodings[0], encodings[1]], rows).worksheet));
-    expect(data).toEqual({ categories: ["Jan 2024", "Feb 2024", "Mar 2024"], category_name: "Month", indicators: null, tooltips: null, numerators: [3, null, 5] });
+    expect(data).toEqual({
+      categories: ["Jan 2024", "Feb 2024", "Mar 2024"], category_name: "Month", category_levels: ["Jan 2024", "Feb 2024", "Mar 2024"],
+      indicators: null, tooltips: null, numerators: [3, null, 5]
+    });
+  });
+
+  it("orders date keys by time whatever their text or row order, and other keys by row order", async () => {
+    const dates: Row[] = [
+      { Month: dateCell("2024-03-01", "March 2024"), "SUM(Count)": cell(1) },
+      { Month: dateCell("2022-12-01", "December 2022"), "SUM(Count)": cell(2) },
+      { Month: dateCell("2023-06-01", "June 2023"), "SUM(Count)": cell(3) },
+      { Month: dateCell("2024-03-01", "March 2024"), "SUM(Count)": cell(4) }
+    ];
+    const byDate = must(await summaryRawData(fakeWorksheet([encodings[0], encodings[1]], dates).worksheet));
+    expect(byDate.category_levels).toEqual(["December 2022", "June 2023", "March 2024"]);
+    const groups: Row[] = [
+      { Group: cell("Ward B"), "SUM(Count)": cell(1) },
+      { Group: cell("Ward A"), "SUM(Count)": cell(2) },
+      { Group: cell("Ward B"), "SUM(Count)": cell(3) }
+    ];
+    const byRow = must(await summaryRawData(fakeWorksheet([{ id: "key", field: { name: "Group" } }, encodings[1]], groups).worksheet));
+    expect(byRow.category_levels).toEqual(["Ward B", "Ward A"]);
   });
 });
 
@@ -142,8 +174,8 @@ describe("Tableau charts", () => {
     expect(update.type).toBe(updateType.data);
     expect(update.frontend).toBe(true);
     expect(update.viewport).toEqual({ width: 300, height: 200 });
-    expect(must(update.dataViews?.[0].categorical?.categories?.[0]).values).toEqual(["Feb 2024", "Jan 2024", "Mar 2024"]);
-    expect(must(update.dataViews?.[0].categorical?.values?.[0]).values).toEqual([null, 3, 5]);
+    expect(must(update.dataViews?.[0].categorical?.categories?.[0]).values).toEqual(["Jan 2024", "Feb 2024", "Mar 2024"]);
+    expect(must(update.dataViews?.[0].categorical?.values?.[0]).values).toEqual([3, null, 5]);
     const updates = visual.updates.length;
     const reads = fake.reads.data;
 
