@@ -4,7 +4,7 @@ SPC custom visual for Tableau, as a Viz Extension running the PowerBI-SPC visual
 ## Layout
 - `spc.trex`: manifest; one `<encoding>` per data role (`key`, `numerators`).
 - `index.html` + `src/main.ts`: reads the worksheet's summary data, maps encodings to Core `RawData`, and calls `Visual.update`.
-- `public/tableau.extensions.1.latest.min.js`: Tableau Extensions library (from the extensions-api repo).
+- The Tableau Extensions library is the `tableau-extensions-api` dependency, pinned to the extensions-api sha of release v1.17.0 (matching `@tableau/extensions-api-types`), and bundled through a side-effect import in `src/main.ts`.
 - `package.json` pins `powerbi-spc` and `powerbi-visuals-core` by GitHub sha; keep Core on the sha PowerBI-SPC pins. `powerbi-spc/*` resolves to that package's `src/`.
 
 ## Develop

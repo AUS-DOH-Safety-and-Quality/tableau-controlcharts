@@ -1,3 +1,5 @@
+// Assigns the tableau global
+import "tableau-extensions-api/lib/tableau.extensions.1.17.0.min.js";
 import {
   chartAggregations, constructorOptions, defaultTooltipSettings, makeUpdateValues, svgTooltipService, toDataViews, type Aggregations,
   type RawData
