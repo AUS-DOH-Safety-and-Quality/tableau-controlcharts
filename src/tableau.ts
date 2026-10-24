@@ -92,6 +92,7 @@ function namedColumns(names: readonly string[]): Record<string, Cell[]> {
 /** The worksheet's summary rows as the frontends' raw data, or undefined without a key and numerator */
 export async function summaryRawData(worksheet: Worksheet): Promise<RawData | undefined> {
   const fields = await encodingFields(worksheet);
+  console.log("fields: ", fields)
   const keyField = fields.key?.[0];
   if (keyField === undefined || fields.numerators?.[0] === undefined) {
     return undefined;
@@ -112,8 +113,10 @@ export async function summaryRawData(worksheet: Worksheet): Promise<RawData | un
   const tooltipNames = Object.keys(tooltips);
 
   const reader = await worksheet.getSummaryDataReaderAsync(undefined, { ignoreSelection: true });
+  console.log("reader: ", reader)
   for (let p = 0; p < reader.pageCount; p++) {
     const page = await reader.getPageAsync(p);
+    console.log("page: ", page)
     const indexes = columnIndexes(page);
     if (p === 0 && isDateColumn(page, keyField)) {
       times = [];
