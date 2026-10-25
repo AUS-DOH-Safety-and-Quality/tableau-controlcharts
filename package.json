@@ -6,13 +6,13 @@
     "start": "vite --port 8765",
     "build": "vite build",
     "eslint": "npx eslint .",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
     "test": "vitest --run"
   },
   "dependencies": {
-    "powerbi-funnels": "github:AUS-DOH-Safety-and-Quality/PowerBI-Funnels#1fd5540",
-    "powerbi-spc": "github:AUS-DOH-Safety-and-Quality/PowerBI-SPC#b192447",
-    "powerbi-visuals-core": "github:AUS-DOH-Safety-and-Quality/PowerBI-Visuals-Core#393430b",
+    "powerbi-funnels": "github:AUS-DOH-Safety-and-Quality/PowerBI-Funnels#80dda2f",
+    "powerbi-spc": "github:AUS-DOH-Safety-and-Quality/PowerBI-SPC#2bfb7dc",
+    "powerbi-visuals-core": "github:AUS-DOH-Safety-and-Quality/PowerBI-Visuals-Core#378d99a",
     "tableau-extensions-api": "github:tableau/extensions-api#d7e8031"
   },
   "devDependencies": {

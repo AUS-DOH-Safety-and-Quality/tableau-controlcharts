@@ -1,8 +1,10 @@
 import { frontendChart } from "powerbi-visuals-core/frontends";
 import type { SettingDefinition } from "powerbi-visuals-core/settings";
+import { at } from "powerbi-visuals-core/util";
 import { control, element, type Control, type Setting } from "./controls";
 import type { StoredSettings } from "./store";
 
+/** One setting's row, carrying its current value */
 type Row = {
   readonly card: string;
   readonly name: string;
@@ -10,6 +12,15 @@ type Row = {
   readonly element: HTMLElement;
   readonly control: Control;
   readonly searchText: string;
+  value: Setting;
+};
+
+/** One card's tab button, its hit count and its panel */
+type Tab = {
+  readonly card: string;
+  readonly button: HTMLButtonElement;
+  readonly count: HTMLElement;
+  readonly panel: HTMLElement;
 };
 
 export type SettingsDialogHandlers = {
@@ -27,13 +38,31 @@ function storedSetting(value: unknown, fallback: Setting): Setting {
   return fallback;
 }
 
+/** Group headings hide when every setting under them is hidden */
+function hideEmptyHeadings(panel: HTMLElement): void {
+  const children = panel.children;
+  let heading: HTMLElement | undefined;
+  let any = false;
+  for (let j = 0; j <= children.length; j++) {
+    const child = children[j] as HTMLElement | undefined;
+    if (child === undefined || child.tagName === "H2") {
+      if (heading !== undefined) {
+        heading.hidden = !any;
+      }
+      heading = child;
+      any = false;
+    } else {
+      any ||= child.hidden === false;
+    }
+  }
+}
+
 export function renderSettingsDialog(chartType: string, root: HTMLElement, stored: StoredSettings, handlers: SettingsDialogHandlers): void {
   const model = frontendChart(chartType).settingsModel;
-  const values: Record<string, Record<string, Setting>> = {};
   const rows: Row[] = [];
-  const tabs = element("nav", "settings-tabs");
-  tabs.setAttribute("role", "tablist");
-  const panels: HTMLElement[] = [];
+  const tabs: Tab[] = [];
+  const tabList = element("nav", "settings-tabs");
+  tabList.setAttribute("role", "tablist");
   const search = element("input");
   search.type = "search";
   search.placeholder = "Search settings…";
@@ -43,10 +72,9 @@ export function renderSettingsDialog(chartType: string, root: HTMLElement, store
   function nonDefaults(): StoredSettings {
     const result: Record<string, Record<string, Setting>> = {};
     for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const value = values[row.card][row.name];
-      if (value !== row.definition.default) {
-        (result[row.card] ??= {})[row.name] = value;
+      const row = at(rows, i);
+      if (row.value !== row.definition.default) {
+        (result[row.card] ??= {})[row.name] = row.value;
       }
     }
     return result;
@@ -55,11 +83,10 @@ export function renderSettingsDialog(chartType: string, root: HTMLElement, store
   function refresh(): StoredSettings {
     let changed = 0;
     for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const value = values[row.card][row.name];
-      const isChanged = value !== row.definition.default;
+      const row = at(rows, i);
+      const isChanged = row.value !== row.definition.default;
       row.element.classList.toggle("changed", isChanged);
-      row.control.set(value);
+      row.control.set(row.value);
       if (isChanged) {
         changed++;
       }
@@ -73,73 +100,77 @@ export function renderSettingsDialog(chartType: string, root: HTMLElement, store
   }
 
   function select(card: string): void {
-    for (let i = 0; i < tabs.children.length; i++) {
-      const tab = tabs.children[i] as HTMLButtonElement;
-      const selected = tab.dataset.card === card;
-      tab.setAttribute("aria-selected", String(selected));
-      tab.tabIndex = selected ? 0 : -1;
-      panels[i].hidden = !selected;
+    for (let i = 0; i < tabs.length; i++) {
+      const tab = at(tabs, i);
+      const selected = tab.card === card;
+      tab.button.setAttribute("aria-selected", String(selected));
+      tab.button.tabIndex = selected ? 0 : -1;
+      tab.panel.hidden = !selected;
     }
   }
 
-  const cards = Object.keys(model);
+  const cards = Object.entries(model);
   for (let c = 0; c < cards.length; c++) {
-    const card = cards[c];
-    values[card] = {};
-    const tab = element("button");
-    tab.type = "button";
-    tab.setAttribute("role", "tab");
-    tab.dataset.card = card;
-    tab.append(model[card].displayName.replace(/ Settings$/, ""), element("span", "count"));
-    tab.addEventListener("click", () => {
+    const [card, cardModel] = at(cards, c);
+    const button = element("button");
+    button.type = "button";
+    button.setAttribute("role", "tab");
+    const count = element("span", "count");
+    button.append(cardModel.displayName.replace(/ Settings$/, ""), count);
+    button.addEventListener("click", () => {
       select(card);
     });
-    tabs.append(tab);
+    tabList.append(button);
     const panel = element("section", "settings-panel");
     panel.setAttribute("role", "tabpanel");
-    const groups = model[card].settingsGroups;
-    const groupNames = Object.keys(groups);
-    for (let g = 0; g < groupNames.length; g++) {
-      const group = groupNames[g];
+    const groups = Object.entries(cardModel.settingsGroups);
+    for (let g = 0; g < groups.length; g++) {
+      const [group, definitions] = at(groups, g);
       if (group !== "all") {
         panel.append(element("h2", undefined, group));
       }
-      const names = Object.keys(groups[group]);
-      for (let n = 0; n < names.length; n++) {
-        const name = names[n];
-        const definition = groups[group][name];
-        values[card][name] = storedSetting(stored[card]?.[name], definition.default);
-        const row = element("div", "setting");
+      const settings = Object.entries(definitions);
+      for (let n = 0; n < settings.length; n++) {
+        const [name, definition] = at(settings, n);
+        const rowElement = element("div", "setting");
         const label = element("label", undefined, definition.displayName);
         const info = element("span", "info", "i");
         info.title = definition.description;
         label.append(info);
-        const rowControl = control(definition, value => {
-          values[card][name] = value;
-          changed();
-        });
+        const row: Row = {
+          card,
+          name,
+          definition,
+          element: rowElement,
+          control: control(definition, value => {
+            row.value = value;
+            changed();
+          }),
+          searchText: `${definition.displayName} ${group} ${name}`.toLowerCase(),
+          value: storedSetting(stored[card]?.[name], definition.default)
+        };
         const reset = element("button", "reset", "↺");
         reset.type = "button";
         reset.title = "Reset to default";
         reset.addEventListener("click", () => {
-          values[card][name] = definition.default;
+          row.value = definition.default;
           changed();
         });
-        row.append(label, rowControl.element, reset);
-        panel.append(row);
-        rows.push({ card, name, definition, element: row, control: rowControl, searchText: `${definition.displayName} ${group} ${name}`.toLowerCase() });
+        rowElement.append(label, row.control.element, reset);
+        panel.append(rowElement);
+        rows.push(row);
       }
     }
-    panels.push(panel);
+    tabs.push({ card, button, count, panel });
   }
 
-  tabs.addEventListener("keydown", event => {
-    const visible: HTMLButtonElement[] = [];
+  tabList.addEventListener("keydown", event => {
+    const visible: Tab[] = [];
     let current = 0;
-    for (let i = 0; i < tabs.children.length; i++) {
-      const tab = tabs.children[i] as HTMLButtonElement;
-      if (tab.hidden === false) {
-        if (tab.getAttribute("aria-selected") === "true") {
+    for (let i = 0; i < tabs.length; i++) {
+      const tab = at(tabs, i);
+      if (tab.button.hidden === false) {
+        if (tab.button.getAttribute("aria-selected") === "true") {
           current = visible.length;
         }
         visible.push(tab);
@@ -149,9 +180,9 @@ export function renderSettingsDialog(chartType: string, root: HTMLElement, store
     const step = steps[event.key];
     if (step !== undefined && visible.length > 0) {
       event.preventDefault();
-      const next = visible[(current + step + visible.length) % visible.length];
-      select(next.dataset.card ?? "");
-      next.focus();
+      const next = at(visible, (current + step + visible.length) % visible.length);
+      select(next.card);
+      next.button.focus();
     }
   });
 
@@ -159,35 +190,21 @@ export function renderSettingsDialog(chartType: string, root: HTMLElement, store
     const query = search.value.trim().toLowerCase();
     const counts: Record<string, number> = {};
     for (let i = 0; i < rows.length; i++) {
-      const hit = query === "" || rows[i].searchText.includes(query);
-      rows[i].element.hidden = !hit;
-      counts[rows[i].card] = (counts[rows[i].card] ?? 0) + (hit ? 1 : 0);
+      const row = at(rows, i);
+      const hit = query === "" || row.searchText.includes(query);
+      row.element.hidden = !hit;
+      counts[row.card] = (counts[row.card] ?? 0) + (hit ? 1 : 0);
     }
     let first: string | undefined;
-    for (let i = 0; i < tabs.children.length; i++) {
-      const tab = tabs.children[i] as HTMLButtonElement;
-      const count = counts[tab.dataset.card ?? ""];
-      tab.hidden = count === 0;
-      (tab.lastElementChild as HTMLElement).textContent = query === "" ? "" : String(count);
+    for (let i = 0; i < tabs.length; i++) {
+      const tab = at(tabs, i);
+      const count = counts[tab.card] ?? 0;
+      tab.button.hidden = count === 0;
+      tab.count.textContent = query === "" ? "" : String(count);
       if (first === undefined && count > 0) {
-        first = tab.dataset.card;
+        first = tab.card;
       }
-      // Group headings hide with their settings
-      const children = panels[i].children;
-      let heading: HTMLElement | undefined;
-      let any = false;
-      for (let j = 0; j <= children.length; j++) {
-        const child = children[j] as HTMLElement | undefined;
-        if (child === undefined || child.tagName === "H2") {
-          if (heading !== undefined) {
-            heading.hidden = !any;
-          }
-          heading = child;
-          any = false;
-        } else {
-          any ||= child.hidden === false;
-        }
-      }
+      hideEmptyHeadings(tab.panel);
     }
     if (first !== undefined) {
       select(first);
@@ -197,13 +214,17 @@ export function renderSettingsDialog(chartType: string, root: HTMLElement, store
   const header = element("header", "settings-header");
   header.append(element("h1", undefined, document.title), search);
   const main = element("div", "settings-main");
-  main.append(tabs, ...panels);
+  main.append(tabList);
+  for (let i = 0; i < tabs.length; i++) {
+    main.append(at(tabs, i).panel);
+  }
   const footer = element("footer", "settings-footer");
   const resetAll = element("button", undefined, "Reset all");
   resetAll.type = "button";
   resetAll.addEventListener("click", () => {
     for (let i = 0; i < rows.length; i++) {
-      values[rows[i].card][rows[i].name] = rows[i].definition.default;
+      const row = at(rows, i);
+      row.value = row.definition.default;
     }
     changed();
   });
@@ -220,6 +241,6 @@ export function renderSettingsDialog(chartType: string, root: HTMLElement, store
   footer.append(status, resetAll, cancel, ok);
   root.classList.add("settings");
   root.append(header, main, footer);
-  select(cards[0]);
+  select(at(tabs, 0).card);
   refresh();
 }

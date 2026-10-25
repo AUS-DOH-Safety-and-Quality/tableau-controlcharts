@@ -1,4 +1,5 @@
 import type { SettingDefinition } from "powerbi-visuals-core/settings";
+import { at } from "powerbi-visuals-core/util";
 
 export type Setting = SettingDefinition["default"];
 export type Control = { readonly element: HTMLElement; set(value: Setting): void };
@@ -54,9 +55,11 @@ function selectControl(definition: SettingDefinition, onChange: (value: Setting)
   const values = definition.valid ?? [];
   const count = items?.length ?? values.length;
   for (let i = 0; i < count; i++) {
+    const item = items?.[i];
+    const value = item?.value ?? at(values, i);
     const option = element("option");
-    option.value = items?.[i].value ?? values[i];
-    option.textContent = items?.[i].displayName ?? values[i].replace(/'/g, "");
+    option.value = value;
+    option.textContent = item?.displayName ?? value.replace(/'/g, "");
     if (definition.type === "FontPicker") {
       option.style.fontFamily = option.value;
     }
