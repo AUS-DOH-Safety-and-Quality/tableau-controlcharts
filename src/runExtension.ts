@@ -2,9 +2,9 @@
 import "tableau-extensions-api/lib/tableau.extensions.1.17.0.min.js";
 import { runChart } from "./tableau";
 
-/** The chart's settings page, beside its chart page */
+/** The chart's settings page; modeless so the chart stays live and visible while settings change */
 function configure(): Promise<string> {
-  return tableau.extensions.ui.displayDialogAsync(new URL("settings.html", location.href).href, "", { width: 760, height: 560 });
+  return tableau.extensions.ui.displayDialogAsync(new URL("settings.html", location.href).href, "", { width: 760, height: 560, dialogStyle: tableau.DialogStyle.Modeless });
 }
 
 /** Starts the registered chart in the page's #chart element once Tableau has initialised the extension */
