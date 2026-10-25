@@ -48,7 +48,7 @@ export async function summaryRawData(worksheet: Worksheet): Promise<RawData | un
   if (keyField === undefined || fields.numerators?.[0] === undefined) {
     return undefined;
   }
-  const key = spec(keyField, true, true);
+  const key: ColumnSpec & { readonly levels: Cell[] } = { name: keyField, text: true, target: [], levels: [] };
   const specs: ColumnSpec[] = [key];
   const values: Partial<Record<ValueRole, Cell[]>> = {};
   for (let i = 0; i < valueRoles.length; i++) {
