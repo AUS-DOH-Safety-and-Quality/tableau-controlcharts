@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { updateType, type UpdateOptions } from "powerbi-visuals-core/powerbi";
 import { startChart, type TableauChart } from "../src/chart/chart";
-import { TestVisual, encodings, fakeSettings, fakeWorksheet, must, rows } from "./fakes";
+import { TestVisual, cell, encodings, fakeSettings, fakeWorksheet, must, rows } from "./fakes";
 
 const charts: TableauChart[] = [];
 afterEach(() => {
@@ -172,5 +172,19 @@ describe("Tableau charts", () => {
   it("fails outside a Viz Extension", () => {
     Object.assign(globalThis, { tableau: { extensions: { environment: {} } } });
     expect(() => startChart("test", document.createElement("div"))).toThrow("Not running as a Viz Extension.");
+  });
+
+  it("hands a YEAR(Date) key to the visual as a Years hierarchy level in date order", async () => {
+    const fake = fakeWorksheet([{ id: "key", field: { name: "YEAR(Date)", dataType: "int", aggregation: "year" } }, encodings[1]], [
+      { "YEAR(Date)": cell(2025), "SUM(Count)": cell(60.76) },
+      { "YEAR(Date)": cell(2024), "SUM(Count)": cell(54.25) },
+      { "YEAR(Date)": cell(2023), "SUM(Count)": cell(52.89) }
+    ]);
+    const { chart, visual } = startTestChart(fake);
+    await chart.updateData();
+    const key = must(must(visual.updates[visual.updates.length - 1]).dataViews?.[0].categorical?.categories?.[0]);
+    expect(key.source.type).toEqual({ temporal: {}, category: "Years" });
+    expect(key.values).toEqual([2023, 2024, 2025]);
+    expect(must(visual.updates[visual.updates.length - 1]).dataViews?.[0].categorical?.values?.[0].values).toEqual([52.89, 54.25, 60.76]);
   });
 });

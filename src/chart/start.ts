@@ -4,7 +4,14 @@ import { startChart } from "./chart";
 
 /** The chart's settings page; modeless so the chart stays live and visible while settings change */
 function configure(): Promise<string> {
-  return tableau.extensions.ui.displayDialogAsync(new URL("settings.html", location.href).href, "", { width: 760, height: 560, dialogStyle: tableau.DialogStyle.Modeless });
+  return tableau.extensions.ui.displayDialogAsync(new URL("settings.html", location.href).href, "", { width: 760, height: 560, dialogStyle: tableau.DialogStyle.Modeless })
+    .catch((error: unknown) => {
+      // Closing from the title bar rejects; the changes made were saved as they were previewed
+      if (error instanceof Error && "errorCode" in error && error.errorCode === tableau.ErrorCodes.DialogClosedByUser) {
+        return "";
+      }
+      throw error;
+    });
 }
 
 /** Starts the registered chart in the page's #chart element once Tableau has initialised the extension */

@@ -25,7 +25,7 @@ describe("Tableau summary data", () => {
     const data = must(await summaryRawData(fakeWorksheet([encodings[0], encodings[1]], rows).worksheet));
     expect(data).toEqual({
       categories: ["Jan 2024", "Feb 2024", "Mar 2024"], category_name: "Month", category_levels: ["Jan 2024", "Feb 2024", "Mar 2024"],
-      indicators: {}, indicator_levels: {}, tooltips: {}, numerators: [3, null, 5]
+      category_date_parts: null, indicators: {}, indicator_levels: {}, tooltips: {}, numerators: [3, null, 5]
     });
   });
 
@@ -47,5 +47,41 @@ describe("Tableau summary data", () => {
     expect(byRow.category_levels).toEqual(["Ward B", "Ward A"]);
     expect(byRow.indicator_levels).toEqual({ Site: ["Z", "A"] });
   });
-});
 
+  it("reads date keys as ISO dates with the parts their aggregation keeps, sorted by value rather than row order", async () => {
+    const field = (name: string, aggregation: string, dataType = "int") => [{ id: "key", field: { name, dataType, aggregation } }, encodings[1]];
+    // Natives as Tableau returns them for MDY(Date) and YEAR(Date), newest first
+    const mdy = must(await summaryRawData(fakeWorksheet(field("MDY(Date)", "mdy"), [
+      { "MDY(Date)": cell(20251201, "1 December 2025"), "SUM(Count)": cell(1) },
+      { "MDY(Date)": cell(20251101, "1 November 2025"), "SUM(Count)": cell(2) },
+      { "MDY(Date)": cell(null), "SUM(Count)": cell(3) }
+    ]).worksheet));
+    expect(mdy.categories).toEqual(["2025-12-01", "2025-11-01", null]);
+    expect(mdy.category_levels).toBeNull();
+    expect(mdy.category_date_parts).toBeNull();
+    const year = must(await summaryRawData(fakeWorksheet(field("YEAR(Date)", "year"), [
+      { "YEAR(Date)": cell(2025), "SUM(Count)": cell(1) },
+      { "YEAR(Date)": cell(2024), "SUM(Count)": cell(2) }
+    ]).worksheet));
+    expect(year.categories).toEqual(["2025-01-01", "2024-01-01"]);
+    expect(year.category_date_parts).toEqual(["year"]);
+    const quarter = must(await summaryRawData(fakeWorksheet(field("QUARTER(Date)", "qtr"), [{ "QUARTER(Date)": cell(4), "SUM(Count)": cell(1) }]).worksheet));
+    expect([quarter.categories, quarter.category_date_parts]).toEqual([["1970-10-01"], ["quarter"]]);
+    const month = must(await summaryRawData(fakeWorksheet(field("MONTH(Date)", "month"), [{ "MONTH(Date)": cell(2), "SUM(Count)": cell(1) }]).worksheet));
+    expect([month.categories, month.category_date_parts]).toEqual([["1970-02-01"], ["month"]]);
+    const day = must(await summaryRawData(fakeWorksheet(field("DAY(Date)", "day"), [{ "DAY(Date)": cell(9), "SUM(Count)": cell(1) }]).worksheet));
+    expect([day.categories, day.category_date_parts]).toEqual([["1970-01-09"], ["day"]]);
+    const truncated = must(await summaryRawData(fakeWorksheet(field("MONTH(Date)", "trunc-month", "date"), [
+      { "MONTH(Date)": dateCell("2024-03-01", "March 2024"), "SUM(Count)": cell(1) }
+    ]).worksheet));
+    expect([truncated.categories, truncated.category_date_parts]).toEqual([["2024-03-01"], ["month", "year"]]);
+    const exact = must(await summaryRawData(fakeWorksheet(field("Date", "none", "date"), [
+      { Date: dateCell("2024-03-05", "5 March 2024"), "SUM(Count)": cell(1) },
+      { Date: cell(null), "SUM(Count)": cell(2) }
+    ]).worksheet));
+    expect([exact.categories, exact.category_date_parts, exact.category_levels]).toEqual([["2024-03-05", null], null, null]);
+    // Other aggregations of a date (e.g. WEEK) keep Tableau's text and order
+    const week = must(await summaryRawData(fakeWorksheet(field("WEEK(Date)", "week"), [{ "WEEK(Date)": cell(12, "Week 12"), "SUM(Count)": cell(1) }]).worksheet));
+    expect([week.categories, week.category_date_parts, week.category_levels]).toEqual([["Week 12"], null, ["Week 12"]]);
+  });
+});

@@ -15,7 +15,7 @@ export function must<T>(value: T | null | undefined): T {
   return value as T;
 }
 export type Row = Readonly<Record<string, DataValue>>;
-export type Encoding = { readonly id: string; readonly field: { readonly name: string } };
+export type Encoding = { readonly id: string; readonly field: { readonly name: string; readonly dataType?: string; readonly aggregation?: string } };
 
 /** Records its updates in place of drawing */
 export class TestVisual implements FrontendVisual {
