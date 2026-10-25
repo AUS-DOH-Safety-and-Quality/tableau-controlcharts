@@ -1,6 +1,6 @@
 import { registerChart } from "powerbi-visuals-core/frontends";
 import { frontend } from "powerbi-funnels/frontend";
-import { runExtension } from "../src/runExtension";
+import { startExtension } from "../src/chart/start";
 
 registerChart("funnel", frontend);
-runExtension("funnel");
+startExtension("funnel");

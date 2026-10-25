@@ -1,6 +1,6 @@
 // Assigns the tableau global
 import "tableau-extensions-api/lib/tableau.extensions.1.17.0.min.js";
-import { runChart } from "./tableau";
+import { startChart } from "./chart";
 
 /** The chart's settings page; modeless so the chart stays live and visible while settings change */
 function configure(): Promise<string> {
@@ -8,12 +8,12 @@ function configure(): Promise<string> {
 }
 
 /** Starts the registered chart in the page's #chart element once Tableau has initialised the extension */
-export function runExtension(chartType: string): void {
+export function startExtension(chartType: string): void {
   const element = document.getElementById("chart");
   if (element === null) {
     throw new Error("Missing #chart element.");
   }
   void tableau.extensions.initializeAsync({ configure }).then(() => {
-    runChart(chartType, element);
+    startChart(chartType, element);
   });
 }

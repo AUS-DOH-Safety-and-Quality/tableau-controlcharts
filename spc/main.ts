@@ -1,6 +1,6 @@
 import { registerChart } from "powerbi-visuals-core/frontends";
 import { frontend } from "powerbi-spc/frontend";
-import { runExtension } from "../src/runExtension";
+import { startExtension } from "../src/chart/start";
 
 registerChart("spc", frontend);
-runExtension("spc");
+startExtension("spc");
