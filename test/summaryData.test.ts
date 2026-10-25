@@ -75,11 +75,12 @@ describe("Tableau summary data", () => {
       { "MONTH(Date)": dateCell("2024-03-01", "March 2024"), "SUM(Count)": cell(1) }
     ]).worksheet));
     expect([truncated.categories, truncated.category_date_parts]).toEqual([["2024-03-01"], ["month", "year"]]);
-    const exact = must(await summaryRawData(fakeWorksheet(field("Date", "none", "date"), [
-      { Date: dateCell("2024-03-05", "5 March 2024"), "SUM(Count)": cell(1) },
+    // An exact date reports the "year" aggregation with a date type, and a Date native
+    const exact = must(await summaryRawData(fakeWorksheet(field("Date", "year", "date"), [
+      { Date: dateCell("2025-12-01T00:00:00.000Z", "01/12/2025"), "SUM(Count)": cell(1) },
       { Date: cell(null), "SUM(Count)": cell(2) }
     ]).worksheet));
-    expect([exact.categories, exact.category_date_parts, exact.category_levels]).toEqual([["2024-03-05", null], null, null]);
+    expect([exact.categories, exact.category_date_parts, exact.category_levels]).toEqual([["2025-12-01", null], null, null]);
     // Other aggregations of a date (e.g. WEEK) keep Tableau's text and order
     const week = must(await summaryRawData(fakeWorksheet(field("WEEK(Date)", "week"), [{ "WEEK(Date)": cell(12, "Week 12"), "SUM(Count)": cell(1) }]).worksheet));
     expect([week.categories, week.category_date_parts, week.category_levels]).toEqual([["Week 12"], null, ["Week 12"]]);

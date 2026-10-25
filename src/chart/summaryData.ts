@@ -54,9 +54,22 @@ function dateCell(cell: DataValue): Cell {
 /** A date key as ISO dates and the parts its aggregation keeps, which the visuals' date settings format; parts left for a whole date */
 type DateKey = { readonly parts: readonly DatePart[] | null; readonly read: Reader };
 
+const truncatedParts: Readonly<Record<string, readonly DatePart[]>> = {
+  "trunc-year": ["year"],
+  "trunc-qtr": ["quarter", "year"],
+  "trunc-month": ["month", "year"]
+};
+
 function dateKey(field: Field): DateKey | undefined {
   const aggregation: string = field.aggregation;
   const dataType: string | undefined = field.dataType;
+  if (dataType === "date" || dataType === "date-time") {
+    // An exact date reports the "year" aggregation too, so only truncation says which parts remain
+    return { parts: truncatedParts[aggregation] ?? null, read: dateCell };
+  }
+  if (dataType !== "int") {
+    return undefined;
+  }
   switch (aggregation) {
     case "year":
       return { parts: ["year"], read: integerDate(year => isoDate(year, 1, 1)) };
@@ -68,14 +81,8 @@ function dateKey(field: Field): DateKey | undefined {
       return { parts: ["day"], read: integerDate(day => isoDate(1970, 1, day)) };
     case "mdy":
       return { parts: null, read: integerDate(ymd => isoDate(Math.floor(ymd / 10000), Math.floor(ymd / 100) % 100, ymd % 100)) };
-    case "trunc-year":
-      return { parts: ["year"], read: dateCell };
-    case "trunc-qtr":
-      return { parts: ["quarter", "year"], read: dateCell };
-    case "trunc-month":
-      return { parts: ["month", "year"], read: dateCell };
     default:
-      return dataType === "date" || dataType === "date-time" ? { parts: null, read: dateCell } : undefined;
+      return undefined;
   }
 }
 
