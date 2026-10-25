@@ -28,6 +28,7 @@ function numeric(cell: DataValue): number | null {
 
 async function encodingFields(worksheet: Worksheet): Promise<EncodingFields> {
   const spec = await worksheet.getVisualSpecificationAsync();
+  console.log("spec: ", spec)
   const encodings = spec.marksSpecifications[spec.activeMarksSpecificationIndex]?.encodings ?? [];
   const fields: Record<string, string[]> = {};
   for (let i = 0; i < encodings.length; i++) {
