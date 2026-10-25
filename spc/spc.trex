@@ -43,13 +43,6 @@
       <fields max-count="1"/>
       <encoding-icon token="letter-x"/>
     </encoding>
-    <encoding id="indicator">
-      <display-name>Grouping (Summary Table)</display-name>
-      <role-spec>
-        <role-type>discrete-dimension</role-type>
-      </role-spec>
-      <encoding-icon token="detail"/>
-    </encoding>
     <encoding id="groupings">
       <display-name>Rebaseline Groupings</display-name>
       <data-spec>
@@ -60,38 +53,6 @@
       </role-spec>
       <fields max-count="1"/>
       <encoding-icon token="shape"/>
-    </encoding>
-    <encoding id="xbar_sds">
-      <display-name>SD (for xbar)</display-name>
-      <data-spec>
-        <data-type>numeric</data-type>
-      </data-spec>
-      <role-spec>
-        <role-type>continuous-measure</role-type>
-      </role-spec>
-      <fields max-count="1"/>
-      <encoding-icon token="size"/>
-    </encoding>
-    <encoding id="tooltips">
-      <display-name>Tooltips</display-name>
-      <role-spec>
-        <role-type>discrete-dimension</role-type>
-        <role-type>continuous-dimension</role-type>
-        <role-type>discrete-measure</role-type>
-        <role-type>continuous-measure</role-type>
-      </role-spec>
-      <encoding-icon token="tooltip"/>
-    </encoding>
-    <encoding id="labels">
-      <display-name>Value Labels</display-name>
-      <role-spec>
-        <role-type>discrete-dimension</role-type>
-        <role-type>continuous-dimension</role-type>
-        <role-type>discrete-measure</role-type>
-        <role-type>continuous-measure</role-type>
-      </role-spec>
-      <fields max-count="1"/>
-      <encoding-icon token="label"/>
     </encoding>
   </worksheet-extension>
   <resources>

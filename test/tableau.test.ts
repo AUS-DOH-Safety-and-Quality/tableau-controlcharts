@@ -143,9 +143,9 @@ const encodings: Encoding[] = [
   { id: "key", field: { name: "Month" } },
   { id: "numerators", field: { name: "SUM(Count)" } },
   { id: "denominators", field: { name: "SUM(Total)" } },
-  { id: "indicator", field: { name: "Site" } },
-  { id: "indicator", field: { name: "Ward" } },
-  { id: "tooltips", field: { name: "AVG(Age)" } },
+  { id: "detail", field: { name: "Site" } },
+  { id: "detail", field: { name: "Ward" } },
+  { id: "tooltip", field: { name: "AVG(Age)" } },
   { id: "labels", field: { name: "Note" } }
 ];
 const rows: Row[] = [

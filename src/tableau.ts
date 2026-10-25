@@ -9,7 +9,7 @@ import { chartInputSettings } from "./settingsStore";
 
 const valueRoles: readonly ValueRole[] = ["numerators", "denominators", "groupings", "xbar_sds", "labels"];
 
-/** The fields on each of the manifest's encodings, by encoding id */
+/** Fields by encoding id: the manifest's custom ids plus Tableau's built-in "detail" and "tooltip" tiles */
 type EncodingFields = Readonly<Record<string, readonly string[]>>;
 
 /** Text as Tableau formats it, so dates read as they do in the worksheet */
@@ -108,8 +108,8 @@ export async function summaryRawData(worksheet: Worksheet): Promise<RawData | un
       valueFields.push(valueRoles[i]);
     }
   }
-  const indicators = namedColumns(fields.indicator ?? []);
-  const tooltips = namedColumns(fields.tooltips ?? []);
+  const indicators = namedColumns(fields.detail ?? []);
+  const tooltips = namedColumns(fields.tooltip ?? []);
   const indicatorNames = Object.keys(indicators);
   const tooltipNames = Object.keys(tooltips);
 
