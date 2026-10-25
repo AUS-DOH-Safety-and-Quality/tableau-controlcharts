@@ -99,7 +99,7 @@ export async function summaryRawData(worksheet: Worksheet): Promise<RawData | un
   }
   const categories: (string | null)[] = [];
   let times: number[] | undefined;
-  const values: Partial<Record<ValueRole, (number | null)[]>> = {};
+  const values: Partial<Record<ValueRole, Cell[]>> = {};
   const valueFields: ValueRole[] = [];
   for (let i = 0; i < valueRoles.length; i++) {
     if (fields[valueRoles[i]]?.[0] !== undefined) {
@@ -126,7 +126,9 @@ export async function summaryRawData(worksheet: Worksheet): Promise<RawData | un
       categories.push(formatted(row[indexes[keyField]]));
       times?.push(time(row[indexes[keyField]]));
       for (let i = 0; i < valueFields.length; i++) {
-        values[valueFields[i]]?.push(numeric(row[indexes[fields[valueFields[i]][0]]]));
+        const cell = row[indexes[fields[valueFields[i]][0]]];
+        // Labels are text the visuals print as given; the other roles are numbers
+        values[valueFields[i]]?.push(valueFields[i] === "labels" ? formatted(cell) : numeric(cell));
       }
       for (let i = 0; i < indicatorNames.length; i++) {
         indicators[indicatorNames[i]].push(formatted(row[indexes[indicatorNames[i]]]));

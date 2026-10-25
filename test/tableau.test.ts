@@ -100,12 +100,13 @@ const encodings: Encoding[] = [
   { id: "denominators", field: { name: "SUM(Total)" } },
   { id: "indicator", field: { name: "Site" } },
   { id: "indicator", field: { name: "Ward" } },
-  { id: "tooltips", field: { name: "AVG(Age)" } }
+  { id: "tooltips", field: { name: "AVG(Age)" } },
+  { id: "labels", field: { name: "Note" } }
 ];
 const rows: Row[] = [
-  { Month: dateCell("2024-01-01", "Jan 2024"), "SUM(Count)": cell(3), "SUM(Total)": cell(10), Site: cell("A"), Ward: cell("W1"), "AVG(Age)": cell(40.5, "40.5") },
-  { Month: dateCell("2024-02-01", "Feb 2024"), "SUM(Count)": cell(null), "SUM(Total)": cell(12), Site: cell("A"), Ward: cell("W1"), "AVG(Age)": cell(41, "41.0") },
-  { Month: dateCell("2024-03-01", "Mar 2024"), "SUM(Count)": cell(5), "SUM(Total)": cell("x"), Site: cell("B"), Ward: cell("W2"), "AVG(Age)": cell(null) }
+  { Month: dateCell("2024-01-01", "Jan 2024"), "SUM(Count)": cell(3), "SUM(Total)": cell(10), Site: cell("A"), Ward: cell("W1"), "AVG(Age)": cell(40.5, "40.5"), Note: cell("Start") },
+  { Month: dateCell("2024-02-01", "Feb 2024"), "SUM(Count)": cell(null), "SUM(Total)": cell(12), Site: cell("A"), Ward: cell("W1"), "AVG(Age)": cell(41, "41.0"), Note: cell(null) },
+  { Month: dateCell("2024-03-01", "Mar 2024"), "SUM(Count)": cell(5), "SUM(Total)": cell("x"), Site: cell("B"), Ward: cell("W2"), "AVG(Age)": cell(null), Note: cell(7, "7.0") }
 ];
 
 const charts: TableauChart[] = [];
@@ -135,7 +136,7 @@ function runTestChart(fake: ReturnType<typeof fakeWorksheet>, extensions: object
 Object.assign(globalThis, { tableau: { DataType: { Date: "date", DateTime: "date-time" } } });
 
 describe("Tableau summary data", () => {
-  it("reads every encoding across pages, formatting keys, indicators and tooltips and nulling missing or non-numeric values", async () => {
+  it("reads every encoding across pages, formatting keys, indicators, tooltips and labels and nulling missing or non-numeric values", async () => {
     const fake = fakeWorksheet(encodings, rows);
     const data = must(await summaryRawData(fake.worksheet));
     expect(data.categories).toEqual(["Jan 2024", "Feb 2024", "Mar 2024"]);
@@ -145,6 +146,7 @@ describe("Tableau summary data", () => {
     expect(data.denominators).toEqual([10, 12, null]);
     expect(data.indicators).toEqual({ Site: ["A", "A", "B"], Ward: ["W1", "W1", "W2"] });
     expect(data.tooltips).toEqual({ "AVG(Age)": ["40.5", "41.0", null] });
+    expect(data.labels).toEqual(["Start", null, "7.0"]);
     expect(data).not.toHaveProperty("groupings");
     expect(fake.reads).toEqual({ data: 1, released: 1 });
   });

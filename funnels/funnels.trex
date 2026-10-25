@@ -40,6 +40,34 @@
       <fields max-count="1"/>
       <encoding-icon token="letter-x"/>
     </encoding>
+    <encoding id="indicator">
+      <display-name>Indicator (MISC)</display-name>
+      <role-spec>
+        <role-type>discrete-dimension</role-type>
+      </role-spec>
+      <encoding-icon token="detail"/>
+    </encoding>
+    <encoding id="tooltips">
+      <display-name>Tooltips</display-name>
+      <role-spec>
+        <role-type>discrete-dimension</role-type>
+        <role-type>continuous-dimension</role-type>
+        <role-type>discrete-measure</role-type>
+        <role-type>continuous-measure</role-type>
+      </role-spec>
+      <encoding-icon token="tooltip"/>
+    </encoding>
+    <encoding id="labels">
+      <display-name>Value Labels</display-name>
+      <role-spec>
+        <role-type>discrete-dimension</role-type>
+        <role-type>continuous-dimension</role-type>
+        <role-type>discrete-measure</role-type>
+        <role-type>continuous-measure</role-type>
+      </role-spec>
+      <fields max-count="1"/>
+      <encoding-icon token="label"/>
+    </encoding>
   </worksheet-extension>
   <resources>
     <resource id="name">
