@@ -2,7 +2,7 @@ import type powerbi from "powerbi-visuals-api";
 import type { Worksheet } from "@tableau/extensions-api-types";
 import { updateType } from "powerbi-visuals-core/powerbi";
 import {
-  chartAggregations, chartPngBlob, constructorOptions, defaultTooltipSettings, frontendChart, makeUpdateValues, svgTooltipService, toDataViews,
+  chartAggregations, chartPngBlob, createVisual, defaultTooltipSettings, makeUpdateValues, noSelection, toDataViews,
   type Aggregations, type FrontendDataView, type FrontendVisual, type RawData
 } from "powerbi-visuals-core/frontends";
 import { chartInputSettings } from "../settings/store";
@@ -57,20 +57,14 @@ export function startChart(chartType: string, element: HTMLElement): TableauChar
   let data: RawData | undefined;
   let dataViews: FrontendDataView[] = [];
   let loaded = false;
-  const visual: FrontendVisual = new (frontendChart(chartType).Visual)(constructorOptions(element, {
-    selectionManager: {
-      registerOnSelectCallback: () => {},
-      getSelectionIds: () => [],
-      select: () => Promise.resolve(),
-      clear: () => Promise.resolve(),
-      showContextMenu: () => Promise.resolve()
-    },
-    tooltipService: svgTooltipService(() => visual.svg, () => defaultTooltipSettings),
+  const visual = createVisual(chartType, element, {
+    selectionManager: noSelection,
+    tooltipSettings: () => defaultTooltipSettings,
     rowKeys: index => [String(index)],
     displayWarningIcon: (hoverText, detailedText) => {
       console.warn(hoverText, detailedText);
     }
-  }));
+  });
 
   function draw(type: powerbi.VisualUpdateType): void {
     visual.update({

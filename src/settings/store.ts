@@ -3,14 +3,12 @@ import { chartSettings, type InputSettings } from "powerbi-visuals-core/frontend
 /** The one workbook setting holding the chart's non-default settings as JSON, by card then name */
 const settingsKey = "settings";
 
-export type StoredSettings = Readonly<Record<string, Readonly<Record<string, unknown>>>>;
-
-export function storedSettings(): StoredSettings {
+export function storedSettings(): InputSettings {
   const json = tableau.extensions.settings.get(settingsKey);
-  return json === undefined ? {} : JSON.parse(json) as StoredSettings;
+  return json === undefined ? {} : JSON.parse(json) as InputSettings;
 }
 
-export async function saveSettings(settings: StoredSettings): Promise<void> {
+export async function saveSettings(settings: InputSettings): Promise<void> {
   tableau.extensions.settings.set(settingsKey, JSON.stringify(settings));
   await tableau.extensions.settings.saveAsync();
 }
