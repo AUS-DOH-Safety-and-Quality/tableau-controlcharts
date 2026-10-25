@@ -130,7 +130,7 @@ export function renderSettingsDialog(chartType: string, root: HTMLElement, store
     let current = 0;
     for (let i = 0; i < tabs.children.length; i++) {
       const tab = tabs.children[i] as HTMLButtonElement;
-      if (!tab.hidden) {
+      if (tab.hidden === false) {
         if (tab.getAttribute("aria-selected") === "true") {
           current = visible.length;
         }
@@ -177,7 +177,7 @@ export function renderSettingsDialog(chartType: string, root: HTMLElement, store
           heading = child;
           any = false;
         } else {
-          any ||= !child.hidden;
+          any ||= child.hidden === false;
         }
       }
     }

@@ -13,24 +13,32 @@ describe("Settings dialog", () => {
     const panels = Array.from(root.querySelectorAll<HTMLElement>("[role=tabpanel]"));
     const rows = Array.from(root.querySelectorAll<HTMLElement>(".setting"));
     const status = must(root.querySelector(".status"));
-    const button = (text: string) => must(Array.from(root.querySelectorAll("button")).find(b => b.textContent === text));
+    const button = (text: string): HTMLButtonElement => {
+      const buttons = root.querySelectorAll("button");
+      for (let i = 0; i < buttons.length; i++) {
+        if (buttons[i].textContent === text) {
+          return buttons[i];
+        }
+      }
+      throw new Error(`No ${text} button`);
+    };
     return { root, handlers, tabs, panels, rows, status, button };
   }
 
   it("renders a tab per card, a heading per named group and a control per setting, starting from the stored values", () => {
     const { root, tabs, panels, rows, status } = render({ lines: { colour_main: "#FF0000" } });
     expect(must(root.querySelector("h1")).textContent).toBe("Test settings");
-    expect(tabs.map(t => t.textContent)).toEqual(["Canvas", "Line"]);
-    expect(tabs.map(t => t.getAttribute("aria-selected"))).toEqual(["true", "false"]);
-    expect(panels.map(p => p.hidden)).toEqual([false, true]);
-    expect(Array.from(panels[1].querySelectorAll("h2")).map(h => h.textContent)).toEqual(["Main", "Target"]);
-    expect(rows.map(r => must(r.querySelector("label")).textContent)).toEqual(["Show Errorsi", "Paddingi", "Main Colouri", "Target Typei"]);
+    expect(Array.from(tabs, t => t.textContent)).toEqual(["Canvas", "Line"]);
+    expect(Array.from(tabs, t => t.getAttribute("aria-selected"))).toEqual(["true", "false"]);
+    expect(Array.from(panels, p => p.hidden)).toEqual([false, true]);
+    expect(Array.from(panels[1].querySelectorAll("h2"), h => h.textContent)).toEqual(["Main", "Target"]);
+    expect(Array.from(rows, r => must(r.querySelector("label")).textContent)).toEqual(["Show Errorsi", "Paddingi", "Main Colouri", "Target Typei"]);
     expect(must(rows[0].querySelector<HTMLInputElement>("input[type=checkbox]")).checked).toBe(true);
     const padding = must(rows[1].querySelector<HTMLInputElement>("input[type=number]"));
     expect([padding.value, padding.min, padding.step]).toEqual(["10", "0", "1"]);
     expect(must(rows[2].querySelector<HTMLInputElement>("input[type=text]")).value).toBe("#FF0000");
-    expect(Array.from(must(rows[3].querySelector("select")).options).map(o => [o.value, o.textContent])).toEqual([["solid", "Solid"], ["dashed", "Dashed"]]);
-    expect(rows.map(r => r.classList.contains("changed"))).toEqual([false, false, true, false]);
+    expect(Array.from(must(rows[3].querySelector("select")).options, o => [o.value, o.textContent])).toEqual([["solid", "Solid"], ["dashed", "Dashed"]]);
+    expect(Array.from(rows, r => r.classList.contains("changed"))).toEqual([false, false, true, false]);
     expect(status.textContent).toBe("1 setting changed");
     expect(must(rows[2].querySelector<HTMLElement>(".info")).title).toBe("Colours.");
   });
@@ -64,14 +72,14 @@ describe("Settings dialog", () => {
     const search = must(root.querySelector<HTMLInputElement>("input[type=search]"));
     search.value = "colour";
     search.dispatchEvent(new Event("input"));
-    expect(rows.map(r => r.hidden)).toEqual([true, true, false, true]);
-    expect(tabs.map(t => t.hidden)).toEqual([true, false]);
+    expect(Array.from(rows, r => r.hidden)).toEqual([true, true, false, true]);
+    expect(Array.from(tabs, t => t.hidden)).toEqual([true, false]);
     expect(must(tabs[1].querySelector(".count")).textContent).toBe("1");
-    expect(panels.map(p => p.hidden)).toEqual([true, false]);
-    expect(Array.from(panels[1].querySelectorAll("h2")).map(h => h.hidden)).toEqual([false, true]);
+    expect(Array.from(panels, p => p.hidden)).toEqual([true, false]);
+    expect(Array.from(panels[1].querySelectorAll("h2"), h => h.hidden)).toEqual([false, true]);
     search.value = "";
     search.dispatchEvent(new Event("input"));
-    expect(rows.map(r => r.hidden)).toEqual([false, false, false, false]);
-    expect(tabs.map(t => t.hidden)).toEqual([false, false]);
+    expect(Array.from(rows, r => r.hidden)).toEqual([false, false, false, false]);
+    expect(Array.from(tabs, t => t.hidden)).toEqual([false, false]);
   });
 });

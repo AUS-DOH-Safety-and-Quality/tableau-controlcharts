@@ -22,7 +22,12 @@ function toggleControl(onChange: (value: Setting) => void): Control {
   input.addEventListener("change", () => {
     onChange(input.checked);
   });
-  return { element: wrap, set: value => { input.checked = value === true; } };
+  return {
+    element: wrap,
+    set: value => {
+      input.checked = value === true;
+    }
+  };
 }
 
 function colourControl(onChange: (value: Setting) => void): Control {
@@ -60,7 +65,12 @@ function selectControl(definition: SettingDefinition, onChange: (value: Setting)
   select.addEventListener("change", () => {
     onChange(select.value);
   });
-  return { element: select, set: value => { select.value = String(value); } };
+  return {
+    element: select,
+    set: value => {
+      select.value = String(value);
+    }
+  };
 }
 
 function inputControl(definition: SettingDefinition, onChange: (value: Setting) => void): Control {
@@ -86,7 +96,12 @@ function inputControl(definition: SettingDefinition, onChange: (value: Setting) 
       onChange(input.value === "" ? undefined : Number(input.value));
     }
   });
-  return { element: input, set: value => { input.value = value === undefined ? "" : String(value); } };
+  return {
+    element: input,
+    set: value => {
+      input.value = value === undefined ? "" : String(value);
+    }
+  };
 }
 
 export function control(definition: SettingDefinition, onChange: (value: Setting) => void): Control {

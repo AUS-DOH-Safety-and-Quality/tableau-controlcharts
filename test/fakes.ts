@@ -129,7 +129,7 @@ export function fakeWorksheet(encodings: readonly Encoding[], rows: readonly Row
 }
 
 // Tableau marks nulls as "%null%" in value, null in nativeValue and "Null" formatted
-export function cell(value: unknown, formattedValue: string = value === null ? "Null" : String(value)): DataValue {
+export function cell(value: string | number | boolean | null, formattedValue: string = value === null ? "Null" : String(value)): DataValue {
   return { value: value === null ? "%null%" : value, nativeValue: value, formattedValue };
 }
 
