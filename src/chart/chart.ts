@@ -35,7 +35,7 @@ async function reportRendered(svg: SVGSVGElement | null): Promise<void> {
     if (svg !== null) {
       image = await (await chartPngBlob(svg)).arrayBuffer();
     }
-  } catch (error: unknown) {
+  } catch (error) {
     // Reporting without the image lets the host capture the page instead of waiting forever
     console.warn("Chart image export failed", error);
   }

@@ -19,6 +19,14 @@ export type SettingsDialogHandlers = {
   onCancel(): void;
 };
 
+/** A stored value counts only with the setting's type; anything else (e.g. from an older model) shows the default */
+function storedSetting(value: unknown, fallback: Setting): Setting {
+  if ((typeof value === "string" || typeof value === "number" || typeof value === "boolean") && (fallback === undefined || typeof value === typeof fallback)) {
+    return value;
+  }
+  return fallback;
+}
+
 export function renderSettingsDialog(chartType: string, root: HTMLElement, stored: StoredSettings, handlers: SettingsDialogHandlers): void {
   const model = frontendChart(chartType).settingsModel;
   const values: Record<string, Record<string, Setting>> = {};
@@ -100,7 +108,7 @@ export function renderSettingsDialog(chartType: string, root: HTMLElement, store
       for (let n = 0; n < names.length; n++) {
         const name = names[n];
         const definition = groups[group][name];
-        values[card][name] = (stored[card]?.[name] ?? definition.default) as Setting;
+        values[card][name] = storedSetting(stored[card]?.[name], definition.default);
         const row = element("div", "setting");
         const label = element("label", undefined, definition.displayName);
         const info = element("span", "info", "i");

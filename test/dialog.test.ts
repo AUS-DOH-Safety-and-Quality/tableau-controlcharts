@@ -43,6 +43,14 @@ describe("Settings dialog", () => {
     expect(must(rows[2].querySelector<HTMLElement>(".info")).title).toBe("Colours.");
   });
 
+  it("shows the default for a stored value of the wrong type", () => {
+    const { rows, status } = render({ canvas: { show_errors: "yes", padding: { old: 1 } }, lines: { colour_main: 7 } });
+    expect(must(rows[0].querySelector<HTMLInputElement>("input[type=checkbox]")).checked).toBe(true);
+    expect(must(rows[1].querySelector<HTMLInputElement>("input[type=number]")).value).toBe("10");
+    expect(must(rows[2].querySelector<HTMLInputElement>("input[type=text]")).value).toBe("#000000");
+    expect(status.textContent).toBe("All settings at defaults");
+  });
+
   it("reports only non-default values on change, resets them, and hands the result to OK", () => {
     const { handlers, rows, button, status } = render();
     const toggle = must(rows[0].querySelector<HTMLInputElement>("input[type=checkbox]"));

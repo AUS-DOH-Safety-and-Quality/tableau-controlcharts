@@ -10,9 +10,9 @@ export function storedSettings(): StoredSettings {
   return json === undefined ? {} : JSON.parse(json) as StoredSettings;
 }
 
-export function saveSettings(settings: StoredSettings): Promise<unknown> {
+export async function saveSettings(settings: StoredSettings): Promise<void> {
   tableau.extensions.settings.set(settingsKey, JSON.stringify(settings));
-  return tableau.extensions.settings.saveAsync();
+  await tableau.extensions.settings.saveAsync();
 }
 
 /** The stored settings validated against the chart's model; invalid settings (e.g. from an older model) are reported and ignored */
