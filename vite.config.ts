@@ -9,7 +9,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      input: ["spc/index.html", "funnels/index.html"]
+      input: ["spc/index.html", "spc/settings.html", "funnels/index.html", "funnels/settings.html"]
     }
   }
 });

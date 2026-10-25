@@ -5,6 +5,7 @@ import {
   chartAggregations, chartPngBlob, constructorOptions, defaultTooltipSettings, frontendChart, makeUpdateValues, svgTooltipService, toDataViews,
   type Aggregations, type Cell, type FrontendDataView, type FrontendVisual, type RawData, type ValueRole
 } from "powerbi-visuals-core/frontends";
+import { chartInputSettings } from "./settingsStore";
 
 const valueRoles: readonly ValueRole[] = ["numerators", "denominators", "groupings", "xbar_sds", "labels"];
 
@@ -195,6 +196,7 @@ export type TableauChart = {
 export function runChart(chartType: string, element: HTMLElement): TableauChart {
   const worksheet = vizWorksheet();
   const aggregations = defaultAggregations();
+  let data: RawData | undefined;
   let dataViews: FrontendDataView[] = [];
   let loaded = false;
   const visual: FrontendVisual = new (frontendChart(chartType).Visual)(constructorOptions(element, {
@@ -225,16 +227,26 @@ export function runChart(chartType: string, element: HTMLElement): TableauChart 
     }
   }
 
-  async function updateData(): Promise<void> {
-    const data = await summaryRawData(worksheet);
-    dataViews = data === undefined ? [] : makeUpdateValues(data, {}, aggregations).dataViews;
-    loaded = true;
+  function updateSettings(): void {
+    if (data === undefined) {
+      dataViews = [];
+    } else {
+      const rowCount = Array.isArray(data.categories) ? data.categories.length : 1;
+      dataViews = makeUpdateValues(data, chartInputSettings(chartType, rowCount), aggregations).dataViews;
+    }
     draw(updateType.data);
   }
 
-  const removeListener = worksheet.addEventListener(tableau.TableauEventType.SummaryDataChanged, () => {
+  async function updateData(): Promise<void> {
+    data = await summaryRawData(worksheet);
+    loaded = true;
+    updateSettings();
+  }
+
+  const removeDataListener = worksheet.addEventListener(tableau.TableauEventType.SummaryDataChanged, () => {
     void updateData();
   });
+  const removeSettingsListener = tableau.extensions.settings.addEventListener(tableau.TableauEventType.SettingsChanged, updateSettings);
   const observer = new ResizeObserver(() => {
     draw(updateType.resize);
   });
@@ -244,7 +256,8 @@ export function runChart(chartType: string, element: HTMLElement): TableauChart 
     visual,
     updateData,
     dispose: () => {
-      removeListener();
+      removeDataListener();
+      removeSettingsListener();
       observer.disconnect();
     }
   };
