@@ -26,10 +26,12 @@ jobs:
     - run: npm ci
     - run: npm run typecheck
     - run: npx vite build --base "/${{ github.event.repository.name }}/"
-    # The manifests users install point at the published site
-    - run: |
+    # The manifests users install point at the published site, whose hostname GitHub lowercases
+    - env:
+        OWNER: ${{ github.repository_owner }}
+      run: |
         for chart in spc funnels; do
-          sed "s#http://localhost:8765/#https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/#" "$chart/$chart.trex" > "dist/$chart/$chart.trex"
+          sed "s#http://localhost:8765/#https://${OWNER,,}.github.io/${{ github.event.repository.name }}/#" "$chart/$chart.trex" > "dist/$chart/$chart.trex"
         done
     - uses: actions/upload-pages-artifact@v4
       with:
