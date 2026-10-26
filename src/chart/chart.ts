@@ -2,8 +2,8 @@ import type powerbi from "powerbi-visuals-api";
 import type { Worksheet } from "@tableau/extensions-api-types";
 import { updateType } from "powerbi-visuals-core/powerbi";
 import {
-  chartAggregations, chartPngBlob, createVisual, defaultTooltipSettings, makeUpdateValues, noSelection, toDataViews,
-  type Aggregations, type FrontendDataView, type FrontendVisual, type RawData
+  chartAggregations, chartPngBlob, createVisual, makeUpdateValues, noSelection, toDataViews,
+  type Aggregations, type FrontendDataView, type FrontendVisual, type RawData, type TooltipSettings
 } from "powerbi-visuals-core/frontends";
 import { chartInputSettings } from "../settings/store";
 import { summaryRawData } from "./summaryData";
@@ -57,9 +57,18 @@ export function startChart(chartType: string, element: HTMLElement): TableauChar
   let data: RawData | undefined;
   let dataViews: FrontendDataView[] = [];
   let loaded = false;
+  // Tableau's native tooltip box, which the API doesn't expose; its stylesheet class carries the workbook's tooltip font
+  const tooltipSettings: TooltipSettings = {
+    ttip_font_class: tableau.ClassNameKey.Tooltip,
+    ttip_background_color: "#FFFFFF",
+    ttip_opacity: 1,
+    ttip_border_radius: 0,
+    ttip_border_color: "#D4D4D4",
+    ttip_border_width: 1
+  };
   const visual = createVisual(chartType, element, {
     selectionManager: noSelection,
-    tooltipSettings: () => defaultTooltipSettings,
+    tooltipSettings: () => tooltipSettings,
     rowKeys: index => [String(index)],
     displayWarningIcon: (hoverText, detailedText) => {
       console.warn(hoverText, detailedText);

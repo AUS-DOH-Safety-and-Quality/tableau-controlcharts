@@ -15,7 +15,8 @@ function startTestChart(fake: ReturnType<typeof fakeWorksheet>, extensions: obje
   Object.assign(globalThis, {
     tableau: {
       extensions: { worksheetContent: { worksheet: fake.worksheet }, environment: {}, settings: settings.namespace, ...extensions },
-      TableauEventType: { SummaryDataChanged: "summary-data-changed", SettingsChanged: "settings-changed" }
+      TableauEventType: { SummaryDataChanged: "summary-data-changed", SettingsChanged: "settings-changed" },
+      ClassNameKey: { Tooltip: "tableau-tooltip" }
     }
   });
   const element = document.body.appendChild(document.createElement("div"));
@@ -167,6 +168,24 @@ describe("Tableau charts", () => {
     element.style.width = "450px";
     await new Promise(resolve => setTimeout(resolve, 50));
     expect(visual.updates.length).toBe(updates);
+  });
+
+  it("draws tooltips in Tableau's box, with the text styled by the workbook's injected tooltip formatting", () => {
+    // As the extensions library injects it from the workbook formatting
+    const style = document.head.appendChild(document.createElement("style"));
+    style.textContent = ".tableau-tooltip { font-family: monospace; font-size: 10pt; color: rgb(51, 51, 51); }";
+    try {
+      const { visual } = startTestChart(fakeWorksheet([encodings[0], encodings[1]], rows));
+      visual.host.tooltipService.show({ dataItems: [{ displayName: "Value", value: "4" }], coordinates: [10, 20], isTouchEvent: false, identities: [] });
+      const group = must(visual.svg.select<SVGGElement>(".chart-tooltip-group").node());
+      expect(group.classList.contains("tableau-tooltip")).toBe(true);
+      const rect = must(group.querySelector("rect"));
+      expect([rect.getAttribute("fill"), rect.getAttribute("stroke"), rect.getAttribute("rx")]).toEqual(["#FFFFFF", "#D4D4D4", "0"]);
+      const text = getComputedStyle(must(group.querySelector("text")));
+      expect([text.fontFamily, text.fontSize, text.fill]).toEqual(["monospace", "13.3333px", "rgb(51, 51, 51)"]);
+    } finally {
+      style.remove();
+    }
   });
 
   it("fails outside a Viz Extension", () => {

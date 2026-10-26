@@ -10,9 +10,9 @@
     "test": "vitest --run"
   },
   "dependencies": {
-    "powerbi-funnels": "github:AUS-DOH-Safety-and-Quality/PowerBI-Funnels#c9ed3bd",
-    "powerbi-spc": "github:AUS-DOH-Safety-and-Quality/PowerBI-SPC#1c56d31",
-    "powerbi-visuals-core": "github:AUS-DOH-Safety-and-Quality/PowerBI-Visuals-Core#239884a",
+    "powerbi-funnels": "github:AUS-DOH-Safety-and-Quality/PowerBI-Funnels#0ab1a2c",
+    "powerbi-spc": "github:AUS-DOH-Safety-and-Quality/PowerBI-SPC#0aec3da",
+    "powerbi-visuals-core": "github:AUS-DOH-Safety-and-Quality/PowerBI-Visuals-Core#975ab8f",
     "tableau-extensions-api": "github:tableau/extensions-api#d7e8031"
   },
   "devDependencies": {
