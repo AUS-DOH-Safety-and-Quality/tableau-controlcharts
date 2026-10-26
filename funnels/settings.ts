@@ -1,6 +1,4 @@
-import { registerChart } from "powerbi-visuals-core/frontends";
-import { frontend } from "powerbi-funnels/frontend";
+import settingsModel from "powerbi-funnels/settings";
 import { startSettingsDialog } from "../src/settings/start";
 
-registerChart("funnel", frontend);
-startSettingsDialog("funnel");
+startSettingsDialog(settingsModel);

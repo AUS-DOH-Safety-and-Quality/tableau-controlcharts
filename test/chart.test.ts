@@ -97,7 +97,7 @@ describe("Tableau charts", () => {
     expect(must(visual.updates[visual.updates.length - 1]).dataViews).toEqual([]);
   });
 
-  it("reports each drawing to an exporting host with the chart's PNG, and only then", async () => {
+  it("reports each drawing to an exporting host, without an image, and only then", async () => {
     const reported = vi.fn((_image?: ArrayBuffer) => Promise.resolve());
     const exporting = { environment: { isExporting: true }, reportExtensionRenderComplete: reported };
     let open = (): void => {};
@@ -117,11 +117,8 @@ describe("Tableau charts", () => {
     });
     const reports = reported.mock.calls.length;
     expect(reports).toBeLessThan(visual.updates.length);
-    const image = must(reported.mock.calls[0][0]);
-    expect(image).toBeInstanceOf(ArrayBuffer);
-    expect(Array.from(new Uint8Array(image, 0, 4))).toEqual([0x89, 0x50, 0x4e, 0x47]);
-    const bitmap = await createImageBitmap(new Blob([image], { type: "image/png" }));
-    expect([bitmap.width, bitmap.height]).toEqual([600, 300]);
+    // The host captures the page itself
+    expect(reported.mock.calls[0]).toEqual([]);
     element.style.width = "400px";
     await vi.waitFor(() => {
       expect(reported).toHaveBeenCalledTimes(reports + 1);
@@ -135,27 +132,6 @@ describe("Tableau charts", () => {
     // Hosts before API 1.17 export without the call
     const older = startTestChart(fakeWorksheet([encodings[0], encodings[1]], rows), { environment: { isExporting: true } });
     await expect(older.chart.updateData()).resolves.toBeUndefined();
-  });
-
-  it("reports without an image when the PNG cannot be made, so the export still completes", async () => {
-    const reported = vi.fn((_image?: ArrayBuffer) => Promise.resolve());
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const toBlob = HTMLCanvasElement.prototype.toBlob;
-    HTMLCanvasElement.prototype.toBlob = function (callback: BlobCallback): void {
-      callback(null);
-    };
-    try {
-      const { chart } = startTestChart(fakeWorksheet([encodings[0], encodings[1]], rows), { environment: { isExporting: true }, reportExtensionRenderComplete: reported });
-      await chart.updateData();
-      await vi.waitFor(() => {
-        expect(reported).toHaveBeenCalled();
-      });
-      expect(reported.mock.calls[0]).toEqual([undefined]);
-      expect(warn).toHaveBeenCalledWith("Chart image export failed", expect.any(Error));
-    } finally {
-      HTMLCanvasElement.prototype.toBlob = toBlob;
-      warn.mockRestore();
-    }
   });
 
   it("stops listening once disposed", async () => {

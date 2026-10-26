@@ -1,6 +1,4 @@
-import { registerChart } from "powerbi-visuals-core/frontends";
-import { frontend } from "powerbi-spc/frontend";
+import settingsModel from "powerbi-spc/settings";
 import { startSettingsDialog } from "../src/settings/start";
 
-registerChart("spc", frontend);
-startSettingsDialog("spc");
+startSettingsDialog(settingsModel);

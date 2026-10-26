@@ -2,7 +2,7 @@ import type powerbi from "powerbi-visuals-api";
 import type { Worksheet } from "@tableau/extensions-api-types";
 import { updateType } from "powerbi-visuals-core/powerbi";
 import {
-  chartAggregations, chartPngBlob, createVisual, makeUpdateValues, noSelection, toDataViews,
+  chartAggregations, createVisual, makeUpdateValues, noSelection, toDataViews,
   type Aggregations, type FrontendDataView, type FrontendVisual, type RawData, type TooltipSettings
 } from "powerbi-visuals-core/frontends";
 import { chartInputSettings } from "../settings/store";
@@ -22,24 +22,6 @@ function defaultAggregations(): Aggregations {
     throw new Error(result.error);
   }
   return result.aggregations;
-}
-
-/** Exports (API 1.17+) wait for the extension to report its drawing done, with the chart image; older hosts lack the call */
-async function reportRendered(svg: SVGSVGElement | null): Promise<void> {
-  const extensions = tableau.extensions;
-  if (!extensions.environment.isExporting || typeof extensions.reportExtensionRenderComplete !== "function") {
-    return;
-  }
-  let image: ArrayBuffer | undefined;
-  try {
-    if (svg !== null) {
-      image = await (await chartPngBlob(svg)).arrayBuffer();
-    }
-  } catch (error) {
-    // Reporting without the image lets the host capture the page instead of waiting forever
-    console.warn("Chart image export failed", error);
-  }
-  await extensions.reportExtensionRenderComplete(image);
 }
 
 export type TableauChart = {
@@ -82,9 +64,10 @@ export function startChart(chartType: string, element: HTMLElement): TableauChar
       type,
       frontend: true
     });
-    // The first resize draws before the data arrives; an export must not capture that
-    if (loaded) {
-      void reportRendered(visual.svg.node());
+    // Exports (API 1.17+) wait for the drawing to be reported, but not the first resize's, which precedes the data
+    const extensions = tableau.extensions;
+    if (loaded && extensions.environment.isExporting && typeof extensions.reportExtensionRenderComplete === "function") {
+      void extensions.reportExtensionRenderComplete();
     }
   }
 

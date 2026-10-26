@@ -1,11 +1,11 @@
 // Assigns the tableau global
 import "tableau-extensions-api/lib/tableau.extensions.1.17.0.min.js";
 import "powerbi-visuals-core/frontends/settingsDialog.css";
-import { renderSettingsDialog, type InputSettings } from "powerbi-visuals-core/frontends";
+import { renderSettingsDialog, type InputSettings, type SettingsModel } from "powerbi-visuals-core/frontends";
 import { saveSettings, storedSettings } from "./store";
 
-/** Runs the settings dialog for a registered chart; each change is saved so the chart previews it, and Cancel restores the original */
-export function startSettingsDialog(chartType: string): void {
+/** Runs the settings dialog for a chart's settings model; each change is saved so the chart previews it, and Cancel restores the original */
+export function startSettingsDialog(model: SettingsModel): void {
   const root = document.getElementById("settings");
   if (root === null) {
     throw new Error("Missing #settings element.");
@@ -19,7 +19,7 @@ export function startSettingsDialog(chartType: string): void {
         tableau.extensions.ui.closeDialog();
       });
     }
-    renderSettingsDialog(chartType, root, original, {
+    renderSettingsDialog(model, root, original, {
       onChange: settings => {
         clearTimeout(pending);
         pending = setTimeout(() => {
