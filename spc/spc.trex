@@ -3,8 +3,8 @@
   <worksheet-extension id="au.gov.wa.health.spc" extension-version="0.0.1">
     <default-locale>en_US</default-locale>
     <name resource-id="name"/>
-    <description>Statistical Process Control chart</description>
-    <author name="AUS-DOH-Safety-and-Quality" email="andrew.johnson@arjohnsonau.com" organization="AUS-DOH-Safety-and-Quality" website="https://github.com/AUS-DOH-Safety-and-Quality"/>
+    <description>Statistical Process Control Charts for Tableau</description>
+    <author name="HQIU - WA Health" email="safetyandquality@health.wa.gov.au" organization="AUS-DOH-Safety-and-Quality" website="https://github.com/AUS-DOH-Safety-and-Quality"/>
     <min-api-version>1.11</min-api-version>
     <source-location>
       <url>http://localhost:8765/spc/index.html</url>
