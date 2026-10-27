@@ -10,21 +10,13 @@
     "test": "vitest --run"
   },
   "dependencies": {
-    "powerbi-funnels": "github:AUS-DOH-Safety-and-Quality/PowerBI-Funnels#e44a293",
-    "powerbi-spc": "github:AUS-DOH-Safety-and-Quality/PowerBI-SPC#84c2e58",
-    "powerbi-visuals-core": "github:AUS-DOH-Safety-and-Quality/powerbi-visuals-core#bd9b6ce",
+    "powerbi-funnels": "github:AUS-DOH-Safety-and-Quality/PowerBI-Funnels#dfde072",
+    "powerbi-spc": "github:AUS-DOH-Safety-and-Quality/PowerBI-SPC#6416a91",
+    "powerbi-visuals-core": "github:AUS-DOH-Safety-and-Quality/powerbi-visuals-core#acf285f",
     "tableau-extensions-api": "github:tableau/extensions-api#d7e8031"
   },
   "devDependencies": {
-    "@eslint/js": "10.0.1",
     "@tableau/extensions-api-types": "1.17.0",
-    "@vitest/browser-playwright": "5.0.5",
-    "eslint": "10.12.0",
-    "eslint-plugin-powerbi-visuals": "1.1.1",
-    "powerbi-visuals-api": "5.1.0",
-    "typescript": "6.0.3",
-    "typescript-eslint": "8.71.1",
-    "vite": "8.3.5",
-    "vitest": "5.0.5"
+    "vite": "8.3.5"
   }
 }
